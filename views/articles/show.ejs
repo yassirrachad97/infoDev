@@ -1,0 +1,303 @@
+<style>
+.btn {
+	background-color: #222;
+	border-color: #222;
+	border-radius: 4px;
+	padding: 10px 20px;
+}
+
+.btn + button {
+	color: #fff;
+}
+
+.btn + button:hover {
+	color: #fff;
+	background: #2e2e2e;
+}
+
+.container-pop, .container-popp{
+	display: none;
+	justify-content: center;
+	align-items: center;
+	width: 100%;
+	height: 100vh;
+	background: #6261616a;
+	position: fixed;
+	top: 0;
+	left: 0;
+	z-index: 100;
+	transition: all 0.3s ease;
+}
+
+.show{
+	display: flex;
+}
+
+.card{
+	width: 18rem; 
+	padding: 20px;
+	background: #fff;
+	border-radius: 8px;
+	box-shadow: 0 0 10px 0 #0000001a;
+	text-align: center;
+}
+
+.form-btns{
+	display: flex;
+	justify-content: flex-end;
+	margin-top: 40px;
+}
+
+.form-btns .btn-primary{
+	background: #007bff;
+	border-color: #007bff;
+	color: #fff;
+	margin-right: 10px;
+}
+
+.form-btns .btn-primary:hover{
+	background: #0056b3;
+	border-color: #0056b3;
+	color: #fff;
+}
+
+.form-btns .btn-danger{
+	background: #dc3545;
+	border-color: #dc3545;
+	color: #fff;
+}
+
+.form-btns .btn-danger:hover{
+	background: #c82333;
+	border-color: #c82333;
+	color: #fff;
+}
+</style>
+
+
+<div class="section post-section pt-5">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <div class="text-center">
+                    <img src="<%= article.author.image %>" alt="Image" class="author-pic img-fluid rounded-circle mx-auto">
+                </div>
+                <span class="d-block text-center"><%= article.author.username %></span>
+                <span class="date d-block text-center small text-uppercase text-black-50 mb-5"><%= new Date(article.createdAt).toDateString() %></span>
+                <h2 class="heading mb-4"><%= article.title %></h2>
+                <img src="<%= article.image %>" alt="Image" class="img-fluid rounded mb-4">
+                <p><%= article.content %></p>
+                
+                <!-- Edit and Delete Buttons -->
+                <% if (isAuthor) { %>
+                    <div class="text-end mt-4">
+                        <a href="/articles/<%= article.id %>/edit" class="btn btn-primary">Edit</a>
+                        <button class="btn btn-danger" id="deleteBtn" onclick="showPop()">Delete</button>
+                    </div>
+                <% } %>
+                
+                <div class="row mt-5 pt-5 border-top">
+                    <div class="col-12">
+                        <span class="fw-bold text-black small mb-1">Share</span>
+                        <ul class="social list-unstyled">
+                            <li><a href="#"><span class="icon-facebook"></span></a></li>
+                            <li><a href="#"><span class="icon-twitter"></span></a></li>
+                            <li><a href="#"><span class="icon-linkedin"></span></a></li>
+                            <li><a href="#"><span class="icon-pinterest"></span></a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<div class="section comment-section pt-5">
+    <div class="container">
+        <h4 class="heading mb-4">Comments</h4>
+
+        <!-- Boucle pour afficher les commentaires -->
+        <% if (article.comments && article.comments.length > 0) { %>
+            <ul class="list-unstyled">
+                <% article.comments.forEach(function(comment) { %>
+                    <li class="mb-3">
+                        <div class="author-pic" style="width: 40px; height: 40px; margin-block-end: 5px;">
+                            <img src="<%= comment.user.image ? comment.user.image : '/uploads/default-profile.jpeg' %>" style="width: 100%; border-radius: 50%;" alt="User Image">
+                        </div>
+                        <strong><%= comment.user.username %></strong> 
+                        <small class="text-muted">(<%= new Date(comment.createdAt).toDateString() %>)</small>
+                        <p><%= comment.content %></p>
+
+                        <!-- Afficher le formulaire de mise à jour uniquement pour le propriétaire du commentaire -->
+                        <% if (comment.userId === currentUserId) { %>
+                            <button class="btn btn-primary mt-3" onclick="openEditPopup(<%= comment.id %>, '<%= comment.content %>')">Modifier</button>
+                            <button class="btn btn-danger mt-3" onclick="showDeleteCommentPopup(<%= comment.id %>)">Delete</button>
+
+                        
+                        <% } %>
+                    </li>
+                <% }) %>
+            </ul>
+        <% } else { %>
+            <p>No comments yet. Be the first to comment!</p>
+        <% } %>
+
+    </div>
+</div>
+
+<!-- Formulaire pour laisser un commentaire -->
+<div class="section comment-form-section pt-5">
+    <div class="container">
+        <h4 class="heading mb-4">Leave a Comment</h4>
+        <form action="/createComment" method="POST">
+            <div class="form-group">
+                <input type="hidden" name="articleId" value="<%= article.id %>">
+                <textarea name="content" class="form-control" rows="4" placeholder="Write your comment here..." required></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary mt-3" style="margin-top: 20px;">Submit Comment</button>
+        </form>        
+    </div>
+</div>
+
+<!-- Popup pour modifier le commentaire -->
+<div id="editPopup" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 20px; border: 1px solid #ccc; z-index: 1000;">
+    <h5>Modifier le Commentaire</h5>
+    <form id="editCommentForm" action="" method="POST">
+        <textarea name="content" class="form-control" rows="4" required></textarea>
+        <input type="hidden" name="_method" value="PUT">
+        <input id="commentId" type="hidden" name="commentId" >
+        <button type="submit" class="btn btn-primary mt-3">Modifier</button>
+        <button type="button" class="btn btn-secondary mt-3" onclick="closeEditPopup()">Annuler</button>
+    </form>
+</div>
+
+<!-- Masque d'arrière-plan pour la popup -->
+<div id="popupOverlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); z-index: 999;"></div>
+
+<script>
+    function openEditPopup(commentId, commentContent) {
+        document.getElementById('editCommentForm').action = '/comments/' + commentId; // Définit l'URL d'action du formulaire
+        document.getElementById('commentId').value= commentId;
+        document.querySelector('#editPopup textarea[name="content"]').value = commentContent; // Remplit le textarea avec le contenu du commentaire
+        document.getElementById('editPopup').style.display = 'block'; // Affiche la pop-up
+        document.getElementById('popupOverlay').style.display = 'block'; // Affiche l'arrière-plan foncé
+    }
+
+    function closeEditPopup() {
+        document.getElementById('editPopup').style.display = 'none'; // Masque la pop-up
+        document.getElementById('popupOverlay').style.display = 'none'; // Masque l'arrière-plan
+    }
+
+</script>
+
+
+
+<div class="container-popp" id="deleteCommentPopup">
+    <div class="card">
+        <div class="card-body">
+            <h5 class="card-title">Are you sure you want to delete this comment?</h5>
+            <div class="form-btns">
+                <!-- Bouton d'annulation -->
+                <button class="btn btn-primary" onclick="hideDeleteCommentPopup()">Cancel</button>
+                <!-- Formulaire de suppression du commentaire -->
+                <form id="deleteCommentForm" action="" method="POST">
+                    <input type="hidden" name="_method" value="DELETE">
+                    <button type="submit" class="btn btn-danger">Submit</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="section pb-0">
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-12">
+                <h2 class="heading">Related</h2>
+            </div>
+        </div>
+
+        <div class="row justify-content-center">
+            <% relatedArticles.forEach(function(relatedArticle) { %>
+                <div class="col-lg-12">
+                    <div class="post-entry d-md-flex small-horizontal mb-5">
+                        <div class="me-md-5 thumbnail mb-3 mb-md-0">
+                            <img src="<%= relatedArticle.image %>" alt="Image" class="img-fluid">
+                        </div>
+                        <div class="content">
+                            <div class="post-meta mb-3">
+                                <a href="#" class="category">Business</a>, <a href="#" class="category">Travel</a>
+                                &mdash;
+                                <span class="date"><%= new Date(relatedArticle.createdAt).toDateString() %></span>
+                            </div>
+                            <h2 class="heading"><a href="/articles/<%= relatedArticle.id %>"><%= relatedArticle.title %></a></h2>
+                            <p><%= relatedArticle.content.substring(0, 200) %>...</p>
+                            <a href="#" class="post-author d-flex align-items-center">
+                                <div class="author-pic">
+                                    <img src="<%= relatedArticle.author.image %>" alt="Image">
+                                </div>
+                                <div class="text">
+                                    <strong><%= relatedArticle.author.username %></strong>
+                                    <span>Author, <%= relatedArticle.author.postCount %> published posts</span>
+                                </div>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            <% }); %>
+        </div>
+    </div>
+</div>
+
+<div class="container-pop">
+	<!-- dlelete popup -->
+	<div class="card">
+		<div class="card-body">
+			<h5 class="card-title">Are you sure you want to delete this article?</h5>
+			<div class="form-btns">
+				<button class="btn btn-primary" onclick="hidePop()">Cancel</button>
+				<form action="/articles/<%= article.id %>?_method=DELETE" method="POST">
+					<button type="submit" class="btn btn-danger">Submit</button>
+				</form>
+			</div>
+		</div>
+	</div>
+
+</div>
+
+<script>
+    // Fonction pour afficher le pop-up de suppression de commentaire
+    function showDeleteCommentPopup(commentId) {
+        console.log("fffffff")
+        const deleteForm = document.getElementById('deleteCommentForm');
+        // Modifier l'action du formulaire pour correspondre à l'ID du commentaire
+        deleteForm.action = '/comments/' + commentId + '?_method=DELETE';
+        // Afficher le pop-up de suppression
+        document.getElementById('deleteCommentPopup').classList.add('show');
+    }
+
+    // Fonction pour masquer le pop-up de suppression de commentaire
+    function hideDeleteCommentPopup() {
+        document.getElementById('deleteCommentPopup').classList.remove('show');
+    }
+</script>
+<script>
+	const deleteBtn = document.querySelector('deleteBtn');
+	const containerPop = document.querySelector('.container-pop');
+
+	const showPop = () => {
+		containerPop.classList.add('show');
+	}
+
+	const hidePop = () => {
+		containerPop.classList.remove('show');
+	}
+
+	containerPop.addEventListener('click', (e) => {
+		if(e.target.classList.contains('container-pop')){
+			hidePop();
+		}
+	})
+</script>
+
